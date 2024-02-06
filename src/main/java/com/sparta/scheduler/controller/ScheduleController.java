@@ -3,6 +3,7 @@ package com.sparta.scheduler.controller;
 import com.sparta.scheduler.dto.ScheduleRequestDto;
 import com.sparta.scheduler.dto.ScheduleResponseDto;
 import com.sparta.scheduler.entity.Schedule;
+import com.sparta.scheduler.service.ScheduleService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -11,55 +12,37 @@ import java.util.*;
 @RequestMapping("/api")
 public class ScheduleController {
 
+    private final ScheduleService scheduleService;
+
+    public ScheduleController(ScheduleService scheduleService) {
+        this.scheduleService = scheduleService;
+    }
+
     private final Map<Long, Schedule> scheduleList = new HashMap<>();
-    private static long schedeleIndex;
+
 
     @PostMapping("/schedule")
     public ScheduleResponseDto createSchedule(@RequestBody ScheduleRequestDto requestDto) {
 
-        schedeleIndex++;
-
-        Schedule schedule = new Schedule(requestDto);
-
-        schedule.setId(schedeleIndex);
-
-
-        scheduleList.put(schedule.getId(), schedule);
-
-
-        ScheduleResponseDto scheduleResponseDto = new ScheduleResponseDto(schedule);
-
-        return scheduleResponseDto;
+        return scheduleService.createSchedule(requestDto);
     }
 
     @GetMapping("/schedule")
     public List<ScheduleResponseDto> getSchedule() {
 
         //내림차순 정렬 스트림
-        List<ScheduleResponseDto> responseList = scheduleList.values().stream()
-                .map(ScheduleResponseDto::new)
-                .sorted(Comparator.comparing(ScheduleResponseDto::getMakeDate).reversed())
-                .toList();
+//        List<ScheduleResponseDto> responseList = scheduleList.values().stream()
+//                .map(ScheduleResponseDto::new)
+//                .sorted(Comparator.comparing(ScheduleResponseDto::getCreateAt).reversed())
+//                .toList();
 
-        return responseList;
+        return scheduleService.getSchedules();
     }
 
     @PutMapping("/schedule/{id}")
-    public ScheduleResponseDto updateSchedule(@PathVariable Long id, @RequestBody ScheduleRequestDto requestDto) {
+    public Long updateSchedule(@PathVariable Long id, @RequestBody ScheduleRequestDto requestDto) {
 
-        if (scheduleList.containsKey(id)) {
-
-            Schedule schedule = scheduleList.get(id);
-
-            if (schedule.getPw().equals(requestDto.getPw())) {
-                schedule.modify(requestDto);
-                return new ScheduleResponseDto(schedule);
-            } else {
-                return new ScheduleResponseDto("비밀번호가 일치하지 않습니다");
-            }
-        } else {
-            throw new IllegalArgumentException("일정이 존재하지 않습니다.");
-        }
+        return scheduleService.updateSchedule(id, requestDto);
     }
 
     @DeleteMapping("/schedule/{id}")
@@ -67,14 +50,14 @@ public class ScheduleController {
 
         if (scheduleList.containsKey(id)) {
             Schedule schedule = scheduleList.get(id);
-            if (schedule.getPw().equals(requestDto.getPw())) {
+            if (schedule.getUsername().equals(requestDto.getUsername())) {
 
                 scheduleList.remove(id);
                 return new ScheduleResponseDto("일정이 삭제되었습니다");
-            } else { return new ScheduleResponseDto("비밀번호가 일치하지 않습니다");
+            } else { return new ScheduleResponseDto("사용자 정보가 일치하지 않습니다");
             }
         } else {
-            throw new IllegalArgumentException("일정이 존재하지 않습니다.");
+            throw new IllegalArgumentException("일정이 존재하지 않습니다");
         }
     }
 }
